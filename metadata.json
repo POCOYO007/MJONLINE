@@ -1,0 +1,5 @@
+{
+  "name": "Meujuristaonline",
+  "description": "A mobile-first loan management system with Bento UI style, featuring client management, loan tracking with various interest calculation methods, and WhatsApp integration.",
+  "requestFramePermissions": []
+}

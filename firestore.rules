@@ -1,0 +1,81 @@
+
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // 1. Helper: Verifica se usuário está logado
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    // 2. Helper: MASTER ADMIN
+    function isMaster() {
+      return isAuthenticated() && request.auth.token.email == 'contasteamsiri@gmail.com';
+    }
+
+    // 3. Helper: Verifica se o usuário é dono do documento (pelo ID do doc ser o UID)
+    function isOwner(userId) {
+      return isAuthenticated() && request.auth.uid == userId;
+    }
+
+    // 4. Helper: Verifica se o documento pertence à empresa do usuário (Admin)
+    function isTenantOwner() {
+      return isAuthenticated() && (
+        (resource == null && request.resource.data.tenantId == request.auth.uid) || 
+        (resource != null && resource.data.tenantId == request.auth.uid)
+      );
+    }
+
+    // 5. NOVA REGRA ATUALIZADA: 
+    // Verifica se o usuário autenticado (que pode ser Anônimo) tem uma sessão válida
+    // em 'cobrador_sessions' que aponta para o tenantId correto.
+    function isAssignedCobrador() {
+      let sessionDoc = get(/databases/$(database)/documents/cobrador_sessions/$(request.auth.uid));
+      return sessionDoc != null && (
+        (resource == null && request.resource.data.tenantId == sessionDoc.data.tenantId) || 
+        (resource != null && resource.data.tenantId == sessionDoc.data.tenantId)
+      );
+    }
+
+    // --- REGRAS DAS COLEÇÕES ---
+
+    // Coleção de Contas
+    match /accounts/{userId} {
+      allow read, write: if isOwner(userId) || isMaster();
+    }
+    
+    // Coleção de Sessões de Cobrador (Ponte entre Auth Anônimo e Dados)
+    match /cobrador_sessions/{userId} {
+      allow read, write: if request.auth.uid == userId;
+    }
+
+    // Configurações: Admin escreve, Cobrador vinculado pode LER
+    match /settings/{userId} {
+      allow write: if isOwner(userId) || isMaster();
+      allow read: if isOwner(userId) || isMaster() || (
+        isAuthenticated() && 
+        get(/databases/$(database)/documents/cobrador_sessions/$(request.auth.uid)).data.tenantId == userId
+      );
+    }
+
+    // Cobradores: Leitura pública (necessário para o login customizado achar o usuário pelo username)
+    match /cobradores/{document=**} {
+      allow read: if true;
+      allow write: if isTenantOwner() || isMaster();
+    }
+
+    // Dados Gerais (Clientes, Empréstimos, Transações)
+    // Regra atualizada: Admin OU Cobrador Vinculado OU Master
+    match /clients/{document=**} {
+      allow read, write: if isTenantOwner() || isAssignedCobrador() || isMaster();
+    }
+    
+    match /loans/{document=**} {
+      allow read, write: if isTenantOwner() || isAssignedCobrador() || isMaster();
+    }
+    
+    match /transactions/{document=**} {
+      allow read, write: if isTenantOwner() || isAssignedCobrador() || isMaster();
+    }
+  }
+}

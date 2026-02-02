@@ -1,0 +1,20 @@
+{
+  "indexes": [
+    {
+      "collectionGroup": "loans",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "tenantId", "order": "ASCENDING" },
+        { "fieldPath": "dateDue", "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "cobradores",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "username", "order": "ASCENDING" }
+      ]
+    }
+  ],
+  "fieldOverrides": []
+}
