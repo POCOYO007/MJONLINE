@@ -184,6 +184,20 @@ const LoanDetails: React.FC = () => {
       if (phoneToUse) window.open(`https://wa.me/55${phoneToUse.replace(/\D/g, '')}?text=${encodeURIComponent(message)}`, '_blank');
   };
 
+  const handleInterestOnlyWhatsApp = () => {
+      if (!loan || !settings) return;
+      
+      const charges = calculations.penalty + calculations.interest;
+      const amountToCharge = charges > 0 ? charges : calculations.nextRenewalCost;
+      
+      const label = charges > 0 ? "juros de atraso e multa" : "juros da parcela";
+      
+      const message = `Olá *${loan.clientName}*!\n\nPassando para facilitar: você pode regularizar apenas os *${label}* hoje no valor de *R$ ${formatMoney(amountToCharge)}*.\n\nAssim seu saldo principal permanece protegido e você evita novos encargos. Vamos fechar?`;
+      
+      const phoneToUse = client?.phone || loan.clientPhone;
+      if (phoneToUse) window.open(`https://wa.me/55${phoneToUse.replace(/\D/g, '')}?text=${encodeURIComponent(message)}`, '_blank');
+  };
+
   if (!loan) return <div className="p-8 text-center text-gray-400">Buscando dados...</div>;
 
   return (
@@ -301,9 +315,16 @@ const LoanDetails: React.FC = () => {
                         <button onClick={() => setPaymentType('renewal')} className={`p-3 rounded-xl border text-xs font-bold transition-all ${paymentType === 'renewal' ? 'bg-blue-600 text-white border-blue-600' : 'bg-white text-gray-500 border-gray-100'}`}>Renovar (Juros)</button>
                     </div>
                 )}
-                <button onClick={handleWhatsApp} className="w-full bg-green-500 text-white py-3 rounded-xl font-bold hover:bg-green-600 flex items-center justify-center gap-2 shadow-lg shadow-green-500/20">
-                    <Smartphone size={18}/> Enviar Lembrete (Zap)
-                </button>
+                
+                <div className="grid grid-cols-1 gap-3">
+                  <button onClick={handleWhatsApp} className="w-full bg-green-500 text-white py-3 rounded-xl font-bold hover:bg-green-600 flex items-center justify-center gap-2 shadow-lg shadow-green-500/20">
+                      <Smartphone size={18}/> Enviar Lembrete (Zap)
+                  </button>
+                  
+                  <button onClick={handleInterestOnlyWhatsApp} className="w-full bg-blue-600 text-white py-3 rounded-xl font-bold hover:bg-blue-700 flex items-center justify-center gap-2 shadow-lg shadow-blue-500/20">
+                      <Percent size={18}/> Cobrar Juros/Atraso (Zap)
+                  </button>
+                </div>
             </div>
         </Card>
 
